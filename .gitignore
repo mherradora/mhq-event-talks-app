@@ -1,0 +1,31 @@
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# Python Bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local Caching / Data
+feed_cache.json
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment Variables
+.env
+
+# SSH keys
+mhq_github.txt
+mhq_github.txt.pub
+
