@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let rawUpdatesData = [];
   let currentFilter = 'all';
   let searchQuery = '';
+  let activeComposeItem = null;
   
   // -----------------------------------------------------------
   // DOM ELEMENT REFERENCES
@@ -17,7 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const refreshBtn = document.getElementById('refreshBtn');
   const refreshIcon = document.getElementById('refreshIcon');
-  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  const exportCsvBtn = document.getElementById('exportCsvBtn');
+  const themeToggleCheckbox = document.getElementById('themeToggleCheckbox');
   const lastUpdatedTime = document.getElementById('lastUpdatedTime');
   const retryBtn = document.getElementById('retryBtn');
   const resetFiltersBtn = document.getElementById('resetFiltersBtn');
@@ -44,6 +46,73 @@ document.addEventListener('DOMContentLoaded', () => {
   const copyTweetBtn = document.getElementById('copyTweetBtn');
   const sendTweetBtn = document.getElementById('sendTweetBtn');
   const closeModalBtn = document.getElementById('closeModalBtn');
+  const resetDraftBtn = document.getElementById('resetDraftBtn');
+  const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+  const toastContainer = document.getElementById('toastContainer');
+
+  // -----------------------------------------------------------
+  // UX UTILITIES & FEED COUNT BADGES
+  // -----------------------------------------------------------
+  function showToast(message, type = 'info') {
+    if (!toastContainer) return;
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    let icon = 'fa-info-circle';
+    if (type === 'success') icon = 'fa-check-circle';
+    else if (type === 'error') icon = 'fa-exclamation-circle';
+    else if (type === 'warning') icon = 'fa-exclamation-triangle';
+
+    toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+    toastContainer.appendChild(toast);
+
+    setTimeout(() => toast.classList.add('show'), 10);
+
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+
+  function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function highlightText(html, query) {
+    if (!query) return html;
+    const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+    const parts = html.split(/(<[^>]+>)/);
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i] && !parts[i].startsWith('<')) {
+        parts[i] = parts[i].replace(regex, '<mark class="highlight">$1</mark>');
+      }
+    }
+    return parts.join('');
+  }
+
+  function updateFilterPillCounts() {
+    const counts = {
+      all: rawUpdatesData.length,
+      Feature: 0,
+      Announcement: 0,
+      Breaking: 0,
+      Change: 0,
+      Issue: 0
+    };
+
+    rawUpdatesData.forEach(item => {
+      if (counts[item.type] !== undefined) {
+        counts[item.type]++;
+      }
+    });
+
+    Object.keys(counts).forEach(key => {
+      const badge = document.getElementById(`count-${key}`);
+      if (badge) {
+        badge.textContent = `(${counts[key]})`;
+      }
+    });
+  }
 
   // -----------------------------------------------------------
   // THEME TOGGLE FUNCTIONALITY
@@ -67,14 +136,10 @@ document.addEventListener('DOMContentLoaded', () => {
       colorSchemeMeta.content = isDark ? "dark" : "light";
     }
 
-    // Update Toggle Icon
-    const themeIcon = document.getElementById('themeIcon');
-    if (isDark) {
-      themeIcon.className = "fa-solid fa-sun";
-      themeToggleBtn.title = "Switch to Light Mode";
-    } else {
-      themeIcon.className = "fa-solid fa-moon";
-      themeToggleBtn.title = "Switch to Dark Mode";
+    // Update Switch Checkbox State
+    if (themeToggleCheckbox) {
+      themeToggleCheckbox.checked = isDark;
+      themeToggleCheckbox.title = isDark ? "Switch to Light Mode" : "Switch to Dark Mode";
     }
 
     if (save) {
@@ -90,11 +155,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  themeToggleBtn.addEventListener('click', () => {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme, true);
-  });
+  if (themeToggleCheckbox) {
+    themeToggleCheckbox.addEventListener('change', () => {
+      const newTheme = themeToggleCheckbox.checked ? 'dark' : 'light';
+      setTheme(newTheme, true);
+    });
+  }
 
   // -----------------------------------------------------------
   // SCROLL PROGRESS BAR
@@ -139,11 +205,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       updateDashboardStats();
+      updateFilterPillCounts();
       renderUpdates();
       
+      if (isRefresh) {
+        showToast('Release notes successfully refreshed!', 'success');
+      }
     } catch (err) {
       console.error("Failed to load BigQuery release notes:", err);
       showErrorState(err.message);
+      showToast('Failed to sync release notes: ' + err.message, 'error');
     } finally {
       // Clear spinner animation
       refreshIcon.classList.remove('animating');
@@ -240,6 +311,11 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (item.type === 'Change') iconClass = 'fa-solid fa-sliders';
         else if (item.type === 'Issue') iconClass = 'fa-solid fa-triangle-exclamation';
 
+        let bodyHtml = item.html;
+        if (searchQuery.trim()) {
+          bodyHtml = highlightText(bodyHtml, searchQuery.trim());
+        }
+
         card.innerHTML = `
           <div class="card-header-row">
             <span class="type-badge">
@@ -255,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
           <div class="card-body">
-            ${item.html}
+            ${bodyHtml}
           </div>
         `;
         
@@ -263,7 +339,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const copyBtn = card.querySelector('.copy-action');
         copyBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          copyTextToClipboard(`BigQuery ${item.type} (${item.date}): ${item.text} ${item.url}`, copyBtn);
+          const copyText = `BigQuery ${item.type} - ${item.date}\n\n${item.text}\n\nRead more: ${item.url}`;
+          copyTextToClipboard(copyText, copyBtn);
         });
 
         // Add tweet action listener
@@ -283,17 +360,22 @@ document.addEventListener('DOMContentLoaded', () => {
   // Helper function to copy text
   function copyTextToClipboard(text, buttonElement) {
     navigator.clipboard.writeText(text).then(() => {
-      const icon = buttonElement.querySelector('i');
-      const originalClass = icon.className;
-      icon.className = "fa-solid fa-check";
-      buttonElement.style.backgroundColor = "rgba(16, 185, 129, 0.15)";
-      
-      setTimeout(() => {
-        icon.className = originalClass;
-        buttonElement.style.backgroundColor = "";
-      }, 2000);
+      showToast('Text copied to clipboard!', 'success');
+      if (buttonElement) {
+        const icon = buttonElement.querySelector('i');
+        if (icon) {
+          const originalClass = icon.className;
+          icon.className = "fa-solid fa-check";
+          buttonElement.style.backgroundColor = "rgba(16, 185, 129, 0.15)";
+          
+          setTimeout(() => {
+            icon.className = originalClass;
+            buttonElement.style.backgroundColor = "";
+          }, 2000);
+        }
+      }
     }).catch(err => {
-      alert("Failed to copy text: " + err);
+      showToast("Failed to copy text: " + err, 'error');
     });
   }
 
@@ -343,6 +425,76 @@ document.addEventListener('DOMContentLoaded', () => {
   retryBtn.addEventListener('click', () => fetchNotes(true));
   refreshBtn.addEventListener('click', () => fetchNotes(true));
 
+  exportCsvBtn.addEventListener('click', () => {
+    if (!rawUpdatesData || rawUpdatesData.length === 0) {
+      showToast("No data available to export.", 'warning');
+      return;
+    }
+
+    const filtered = rawUpdatesData.filter(item => {
+      const matchType = currentFilter === 'all' || item.type === currentFilter;
+      const query = searchQuery.trim().toLowerCase();
+      return matchType && (!query || 
+             item.text.toLowerCase().includes(query) ||
+             item.type.toLowerCase().includes(query) ||
+             item.date.toLowerCase().includes(query));
+    });
+
+    if (filtered.length === 0) {
+      showToast("No matching updates to export.", 'warning');
+      return;
+    }
+
+    showToast("CSV export initiated!", 'success');
+
+    const headers = ['ID', 'Date', 'ISO Date', 'Type', 'Description', 'URL'];
+    
+    const escapeCSV = (val) => {
+      if (val === null || val === undefined) return '';
+      let str = String(val);
+      str = str.replace(/"/g, '""');
+      if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+        str = `"${str}"`;
+      }
+      return str;
+    };
+
+    const csvRows = [headers.join(',')];
+    filtered.forEach(item => {
+      const row = [
+        item.id,
+        item.date,
+        item.iso_date,
+        item.type,
+        item.text,
+        item.url
+      ];
+      csvRows.push(row.map(escapeCSV).join(','));
+    });
+
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    
+    let filename = 'bigquery_release_notes';
+    if (currentFilter !== 'all') {
+      filename += `_${currentFilter.toLowerCase()}`;
+    }
+    if (searchQuery.trim()) {
+      filename += `_${searchQuery.trim().replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
+    }
+    filename += '.csv';
+    
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  });
+
   // -----------------------------------------------------------
   // TWEET COMPOSER DIALOG LOGIC
   // -----------------------------------------------------------
@@ -356,6 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function openTweetComposer(item) {
+    activeComposeItem = item;
     // Structure of tweet
     // Maximize text while ensuring it fits 280.
     // Length budget = 280 - (Fixed prefixes & Hashtags & URL)
@@ -462,6 +615,52 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // -----------------------------------------------------------
+  // INTERACTIVE UX EVENT HANDLERS
+  // -----------------------------------------------------------
+  
+  // Scroll to Top visibility
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 400) {
+      scrollToTopBtn.classList.add('visible');
+    } else {
+      scrollToTopBtn.classList.remove('visible');
+    }
+  });
+
+  scrollToTopBtn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // Keyboard shortcut '/' to focus search
+  window.addEventListener('keydown', (e) => {
+    if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+      showToast('Search input focused!', 'info');
+    }
+  });
+
+  // Reset compose draft
+  if (resetDraftBtn) {
+    resetDraftBtn.addEventListener('click', () => {
+      if (activeComposeItem) {
+        openTweetComposer(activeComposeItem);
+        showToast('Compose draft reset!', 'info');
+      }
+    });
+  }
+
+  // Network offline/online alerts
+  window.addEventListener('offline', () => {
+    showToast('Offline mode. Using cached release notes.', 'warning');
+  });
+
+  window.addEventListener('online', () => {
+    showToast('Back online! Ready to sync fresh notes.', 'success');
+  });
 
   // -----------------------------------------------------------
   // BOOTSTRAP INITIALIZATION

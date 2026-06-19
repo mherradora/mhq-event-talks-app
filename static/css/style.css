@@ -1097,3 +1097,212 @@ dialog[open] {
     justify-content: flex-end;
   }
 }
+
+/* -------------------------------------------------------------
+ * THEME SLIDE SWITCH OVERRIDES & COMPONENT STYLING
+ * ------------------------------------------------------------- */
+.theme-switch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 50px;
+  background-color: rgba(var(--gcloud-blue-rgb), 0.05);
+  border: 1px solid var(--border-color);
+  transition: all var(--transition-normal);
+}
+
+.theme-switch-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  transition: color var(--transition-normal);
+}
+
+.theme-switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 22px;
+}
+
+.theme-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: .3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid var(--border-color);
+}
+
+.slider::before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  transition: .3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.theme-switch input:checked + .slider {
+  background-color: var(--gcloud-blue);
+}
+
+.theme-switch input:focus-visible + .slider {
+  outline: 2px solid var(--gcloud-blue);
+  outline-offset: 2px;
+}
+
+.theme-switch input:checked + .slider::before {
+  transform: translateX(20px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round::before {
+  border-radius: 50%;
+}
+
+/* Icon active state styling */
+[data-theme="dark"] .icon-moon {
+  color: var(--amber);
+}
+
+[data-theme="light"] .icon-sun {
+  color: var(--gcloud-blue);
+}
+
+/* -------------------------------------------------------------
+ * SEARCH HIGHLIGHTING
+ * ------------------------------------------------------------- */
+mark.highlight {
+  background-color: rgba(245, 158, 11, 0.35); /* Amber highlight */
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* -------------------------------------------------------------
+ * FLOATING SCROLL TO TOP BUTTON
+ * ------------------------------------------------------------- */
+.scroll-to-top-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background-color: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  color: var(--gcloud-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+  transition: all var(--transition-normal);
+  z-index: 99;
+}
+
+.scroll-to-top-btn.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.scroll-to-top-btn:hover {
+  background-color: var(--gcloud-blue);
+  color: #ffffff;
+  border-color: var(--gcloud-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(26, 115, 232, 0.25);
+}
+
+/* -------------------------------------------------------------
+ * TOAST NOTIFICATIONS
+ * ------------------------------------------------------------- */
+.toast-container {
+  position: fixed;
+  bottom: 2rem;
+  left: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  background-color: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--gcloud-blue);
+  border-radius: var(--border-radius-sm);
+  padding: 0.75rem 1.25rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transform: translateY(20px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.toast.success {
+  border-left-color: var(--emerald);
+}
+
+.toast.error {
+  border-left-color: var(--crimson);
+}
+
+.toast.warning {
+  border-left-color: var(--amber);
+}
+
+/* -------------------------------------------------------------
+ * PILL COUNT BADGES
+ * ------------------------------------------------------------- */
+.pill-count {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  font-weight: 500;
+  margin-left: 0.25rem;
+  background-color: rgba(light-dark(#000000, #ffffff), 0.08);
+  padding: 0.1rem 0.4rem;
+  border-radius: 20px;
+  transition: all var(--transition-fast);
+}
+
+.filter-pill.active .pill-count {
+  background-color: rgba(255, 255, 255, 0.25);
+  opacity: 1;
+}
+

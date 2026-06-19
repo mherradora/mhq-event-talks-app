@@ -29,3 +29,19 @@ Thumbs.db
 mhq_github.txt
 mhq_github.txt.pub
 
+# Testing / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Log Files
+*.log
+logs/
+
+# Build and Distribution
+build/
+dist/
+*.egg-info/
+.eggs/

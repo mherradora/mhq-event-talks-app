@@ -72,10 +72,25 @@
           <span>Refresh</span>
         </button>
         
-        <!-- Theme Toggle Button -->
-        <button id="themeToggleBtn" class="btn btn-icon" title="Toggle Theme" aria-label="Toggle theme mode">
-          <i class="fa-solid fa-moon theme-icon-dark" id="themeIcon"></i>
+        <!-- Export CSV Button -->
+        <button id="exportCsvBtn" class="btn btn-secondary" title="Export to CSV" aria-label="Export release notes to CSV">
+          <i class="fa-solid fa-file-csv"></i>
+          <span>Export CSV</span>
         </button>
+        
+        <!-- Theme Toggle Switch -->
+        <div class="theme-switch-wrapper">
+          <span class="theme-switch-label" aria-hidden="true">
+            <i class="fa-solid fa-sun icon-sun"></i>
+          </span>
+          <label class="theme-switch" for="themeToggleCheckbox">
+            <input type="checkbox" id="themeToggleCheckbox" title="Toggle theme mode" aria-label="Toggle theme mode">
+            <span class="slider round"></span>
+          </label>
+          <span class="theme-switch-label" aria-hidden="true">
+            <i class="fa-solid fa-moon icon-moon"></i>
+          </span>
+        </div>
       </div>
     </div>
   </header>
@@ -123,21 +138,21 @@
       </div>
       
       <div class="filter-pills-container" role="group" aria-label="Filter updates by category">
-        <button class="filter-pill active" data-type="all">All Updates</button>
+        <button class="filter-pill active" data-type="all">All Updates <span class="pill-count" id="count-all"></span></button>
         <button class="filter-pill" data-type="Feature">
-          <span class="pill-dot feature"></span> Features
+          <span class="pill-dot feature"></span> Features <span class="pill-count" id="count-Feature"></span>
         </button>
         <button class="filter-pill" data-type="Announcement">
-          <span class="pill-dot announcement"></span> Announcements
+          <span class="pill-dot announcement"></span> Announcements <span class="pill-count" id="count-Announcement"></span>
         </button>
         <button class="filter-pill" data-type="Breaking">
-          <span class="pill-dot breaking"></span> Breaking
+          <span class="pill-dot breaking"></span> Breaking <span class="pill-count" id="count-Breaking"></span>
         </button>
         <button class="filter-pill" data-type="Change">
-          <span class="pill-dot change"></span> Changes
+          <span class="pill-dot change"></span> Changes <span class="pill-count" id="count-Change"></span>
         </button>
         <button class="filter-pill" data-type="Issue">
-          <span class="pill-dot issue"></span> Issues
+          <span class="pill-dot issue"></span> Issues <span class="pill-count" id="count-Issue"></span>
         </button>
       </div>
     </section>
@@ -228,6 +243,9 @@
         </div>
         
         <div class="action-buttons">
+          <button id="resetDraftBtn" class="btn btn-icon" title="Reset to default draft" aria-label="Reset draft">
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
           <button id="copyTweetBtn" class="btn btn-secondary" title="Copy to clipboard">
             <i class="fa-regular fa-copy"></i> Copy Text
           </button>
@@ -238,6 +256,14 @@
       </div>
     </div>
   </dialog>
+
+  <!-- Scroll to top floating button -->
+  <button id="scrollToTopBtn" class="scroll-to-top-btn" title="Scroll to top" aria-label="Scroll to top">
+    <i class="fa-solid fa-arrow-up"></i>
+  </button>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
   <!-- Scripts -->
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
