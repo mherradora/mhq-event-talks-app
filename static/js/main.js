@@ -8,6 +8,108 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeComposeItem = null;
   
   // -----------------------------------------------------------
+  // TRANSLATION DICTIONARY
+  // -----------------------------------------------------------
+  const TRANSLATIONS = {
+    en: {
+      appTitle: "BigQuery Release Notes",
+      appSubtitle: "Real-time insights & announcement tracking",
+      updatedLabel: "Updated:",
+      updatedLoading: "Loading...",
+      btnRefresh: "Refresh",
+      btnExportCsv: "Export CSV",
+      refreshTooltip: "Refresh Release Notes",
+      exportCsvTooltip: "Export to CSV",
+      langTooltip: "Switch to Spanish",
+      statTotalLabel: "Total Updates",
+      statFeaturesLabel: "Features",
+      statBreakingLabel: "Breaking / Issues",
+      searchPlaceholder: "Search release notes by keywords (e.g. Gemini, SQL, columns)...",
+      filterAll: "All Updates",
+      filterFeatures: "Features",
+      filterAnnouncements: "Announcements",
+      filterBreaking: "Breaking",
+      filterChanges: "Changes",
+      filterIssues: "Issues",
+      errorTitle: "Failed to fetch updates",
+      errorDesc: "We encountered an issue downloading the release notes feed. Please try again.",
+      btnTryAgain: "Try Again",
+      emptyTitle: "No matching updates found",
+      emptyDesc: "Try refining your search terms or choosing a different filter category.",
+      btnResetFilters: "Reset Filters",
+      dialogTitle: "Compose Tweet",
+      dialogTextareaPlaceholder: "What's happening in BigQuery?",
+      dialogNotice: "Draft is editable. Links and hashtags will be formatted.",
+      dialogExceedsLimit: "Exceeds X (280) character limit!",
+      btnResetDraft: "Reset to default draft",
+      btnCopyText: "Copy Text",
+      btnPostX: "Post on X",
+      scrollToTopTooltip: "Scroll to top",
+      footerTitle: "Google Cloud BigQuery Release Notes Web Explorer",
+      footerDisclaimer: "This application parses the official RSS feed and facilitates social sharing. All product names belong to Google LLC.",
+      toastRefreshSuccess: "Release notes successfully refreshed!",
+      toastRefreshFail: "Failed to sync release notes: ",
+      toastCopied: "Text copied to clipboard!",
+      toastNoExportData: "No data available to export.",
+      toastNoExportMatches: "No matching updates to export.",
+      toastCsvStarted: "CSV export initiated!",
+      toastSearchFocused: "Search input focused!",
+      toastDraftReset: "Compose draft reset!",
+      toastOffline: "Offline mode. Using cached release notes.",
+      toastOnline: "Back online! Ready to sync fresh notes.",
+      dateUnknown: "Unknown Date"
+    },
+    es: {
+      appTitle: "Notas de Lanzamiento de BigQuery",
+      appSubtitle: "Información en tiempo real y seguimiento de anuncios",
+      updatedLabel: "Actualizado:",
+      updatedLoading: "Cargando...",
+      btnRefresh: "Actualizar",
+      btnExportCsv: "Exportar CSV",
+      refreshTooltip: "Actualizar notas de lanzamiento",
+      exportCsvTooltip: "Exportar a CSV",
+      langTooltip: "Cambiar a Inglés",
+      statTotalLabel: "Total de Actualizaciones",
+      statFeaturesLabel: "Funcionalidades",
+      statBreakingLabel: "Críticos / Problemas",
+      searchPlaceholder: "Buscar notas de lanzamiento por palabras clave (ej. Gemini, SQL)...",
+      filterAll: "Todas las Actualizaciones",
+      filterFeatures: "Funcionalidades",
+      filterAnnouncements: "Anuncios",
+      filterBreaking: "Críticos",
+      filterChanges: "Cambios",
+      filterIssues: "Problemas",
+      errorTitle: "Error al obtener las actualizaciones",
+      errorDesc: "Ocurrió un problema al descargar el feed de notas de lanzamiento. Inténtelo de nuevo.",
+      btnTryAgain: "Reintentar",
+      emptyTitle: "No se encontraron actualizaciones",
+      emptyDesc: "Intente refinar los términos de búsqueda o elija otra categoría de filtro.",
+      btnResetFilters: "Restablecer Filtros",
+      dialogTitle: "Redactar Tweet",
+      dialogTextareaPlaceholder: "¿Qué está pasando en BigQuery?",
+      dialogNotice: "El borrador es editable. Los enlaces y hashtags serán formateados.",
+      dialogExceedsLimit: "¡Supera el límite de caracteres de X (280)!",
+      btnResetDraft: "Restablecer borrador predeterminado",
+      btnCopyText: "Copiar Texto",
+      btnPostX: "Publicar en X",
+      scrollToTopTooltip: "Subir al inicio",
+      footerTitle: "Explorador Web de Notas de Lanzamiento de Google Cloud BigQuery",
+      footerDisclaimer: "Esta aplicación analiza el feed RSS oficial y facilita compartir en redes sociales. Todos los nombres de productos pertenecen a Google LLC.",
+      toastRefreshSuccess: "¡Notas de lanzamiento actualizadas con éxito!",
+      toastRefreshFail: "Error al sincronizar notas de lanzamiento: ",
+      toastCopied: "¡Texto copiado al portapapeles!",
+      toastNoExportData: "No hay datos disponibles para exportar.",
+      toastNoExportMatches: "No hay actualizaciones coincidentes para exportar.",
+      toastCsvStarted: "¡Exportación de CSV iniciada!",
+      toastSearchFocused: "¡Buscador enfocado!",
+      toastDraftReset: "¡Borrador restablecido!",
+      toastOffline: "Modo sin conexión. Usando notas de lanzamiento almacenadas.",
+      toastOnline: "¡De nuevo en línea! Listo para sincronizar nuevas notas.",
+      dateUnknown: "Fecha Desconocida"
+    }
+  };
+
+  // -----------------------------------------------------------
   // DOM ELEMENT REFERENCES
   // -----------------------------------------------------------
   const feedContainer = document.getElementById('feedContainer');
@@ -23,6 +125,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const lastUpdatedTime = document.getElementById('lastUpdatedTime');
   const retryBtn = document.getElementById('retryBtn');
   const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+  
+  // Language elements
+  const langBtn = document.getElementById('langBtn');
+  const langBtnText = document.getElementById('langBtnText');
   
   // Search & Filter elements
   const searchInput = document.getElementById('searchInput');
@@ -51,9 +157,209 @@ document.addEventListener('DOMContentLoaded', () => {
   const toastContainer = document.getElementById('toastContainer');
 
   // -----------------------------------------------------------
+  // LANGUAGE SELECTION FUNCTIONALITY
+  // -----------------------------------------------------------
+  function initLanguage() {
+    const cachedLang = localStorage.getItem("language") || "en";
+    setLanguage(cachedLang, false);
+  }
+
+  function setLanguage(lang, save = true) {
+    const newLang = lang === 'es' ? 'es' : 'en';
+    
+    if (save) {
+      localStorage.setItem("language", newLang);
+    }
+    
+    if (langBtnText) {
+      langBtnText.textContent = newLang === 'es' ? 'EN' : 'ES';
+    }
+    if (langBtn) {
+      const titleText = newLang === 'es' ? 'Cambiar a Inglés' : 'Switch to Spanish';
+      langBtn.title = titleText;
+      langBtn.setAttribute('aria-label', titleText);
+    }
+    
+    document.documentElement.setAttribute('lang', newLang);
+    
+    translateUI(newLang);
+    
+    if (rawUpdatesData && rawUpdatesData.length > 0) {
+      renderUpdates();
+      updateDashboardStats();
+      updateFilterPillCounts();
+    }
+  }
+
+  function translateUI(lang) {
+    const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+    
+    // Header
+    const appTitle = document.getElementById('appTitle');
+    if (appTitle) appTitle.textContent = t.appTitle;
+    
+    const appSubtitle = document.getElementById('appSubtitle');
+    if (appSubtitle) appSubtitle.textContent = t.appSubtitle;
+    
+    const lastUpdatedLabel = document.getElementById('lastUpdatedLabel');
+    if (lastUpdatedLabel) lastUpdatedLabel.textContent = t.updatedLabel;
+    
+    const refreshBtnText = document.getElementById('refreshBtnText');
+    if (refreshBtnText) refreshBtnText.textContent = t.btnRefresh;
+    
+    const exportCsvBtnText = document.getElementById('exportCsvBtnText');
+    if (exportCsvBtnText) exportCsvBtnText.textContent = t.btnExportCsv;
+    
+    if (refreshBtn) {
+      refreshBtn.title = t.refreshTooltip;
+      refreshBtn.setAttribute('aria-label', t.refreshTooltip);
+    }
+    
+    if (exportCsvBtn) {
+      exportCsvBtn.title = t.exportCsvTooltip;
+      exportCsvBtn.setAttribute('aria-label', t.exportCsvTooltip);
+    }
+    
+    // Stats Dashboard
+    const statTotalLabel = document.getElementById('statTotalLabel');
+    if (statTotalLabel) statTotalLabel.textContent = t.statTotalLabel;
+    
+    const statFeaturesLabel = document.getElementById('statFeaturesLabel');
+    if (statFeaturesLabel) statFeaturesLabel.textContent = t.statFeaturesLabel;
+    
+    const statAlertsLabel = document.getElementById('statAlertsLabel');
+    if (statAlertsLabel) statAlertsLabel.textContent = t.statBreakingLabel;
+    
+    // Search
+    if (searchInput) {
+      searchInput.placeholder = t.searchPlaceholder;
+      searchInput.setAttribute('aria-label', t.searchPlaceholder);
+    }
+    
+    // Filter Pills
+    const filterAllText = document.getElementById('filterAllText');
+    if (filterAllText) filterAllText.textContent = t.filterAll;
+    
+    const filterFeatureText = document.getElementById('filterFeatureText');
+    if (filterFeatureText) filterFeatureText.textContent = t.filterFeatures;
+    
+    const filterAnnouncementText = document.getElementById('filterAnnouncementText');
+    if (filterAnnouncementText) filterAnnouncementText.textContent = t.filterAnnouncements;
+    
+    const filterBreakingText = document.getElementById('filterBreakingText');
+    if (filterBreakingText) filterBreakingText.textContent = t.filterBreaking;
+    
+    const filterChangeText = document.getElementById('filterChangeText');
+    if (filterChangeText) filterChangeText.textContent = t.filterChanges;
+    
+    const filterIssueText = document.getElementById('filterIssueText');
+    if (filterIssueText) filterIssueText.textContent = t.filterIssues;
+    
+    // Stream states
+    const errorTitle = document.getElementById('errorTitle');
+    if (errorTitle) errorTitle.textContent = t.errorTitle;
+    
+    const errorMessageText = document.getElementById('errorMessageText');
+    if (errorMessageText && (errorMessageText.textContent.includes("We encountered an issue") || errorMessageText.textContent.includes("Ocurrió un problema"))) {
+      errorMessageText.textContent = t.errorDesc;
+    }
+    
+    const retryBtnText = document.getElementById('retryBtnText');
+    if (retryBtnText) retryBtnText.textContent = t.btnTryAgain;
+    
+    const emptyTitle = document.getElementById('emptyTitle');
+    if (emptyTitle) emptyTitle.textContent = t.emptyTitle;
+    
+    const emptyDesc = document.getElementById('emptyDesc');
+    if (emptyDesc) emptyDesc.textContent = t.emptyDesc;
+    
+    const resetFiltersBtnText = document.getElementById('resetFiltersBtnText');
+    if (resetFiltersBtnText) resetFiltersBtnText.textContent = t.btnResetFilters;
+    
+    // Tweet Dialog
+    const tweetModalTitle = document.getElementById('tweetModalTitle');
+    if (tweetModalTitle) tweetModalTitle.textContent = t.dialogTitle;
+    
+    if (tweetTextarea) {
+      tweetTextarea.placeholder = t.dialogTextareaPlaceholder;
+      tweetTextarea.setAttribute('aria-label', t.dialogTextareaPlaceholder);
+    }
+    
+    const tweetPreviewNoticeText = document.getElementById('tweetPreviewNoticeText');
+    if (tweetPreviewNoticeText) tweetPreviewNoticeText.textContent = t.dialogNotice;
+    
+    const warningMsg = document.getElementById('warningMsg');
+    if (warningMsg) {
+      warningMsg.textContent = t.dialogExceedsLimit;
+    }
+    
+    if (resetDraftBtn) {
+      resetDraftBtn.title = t.btnResetDraft;
+      resetDraftBtn.setAttribute('aria-label', t.btnResetDraft);
+    }
+    
+    const copyTweetBtnText = document.getElementById('copyTweetBtnText');
+    if (copyTweetBtnText) copyTweetBtnText.textContent = t.btnCopyText;
+    
+    const sendTweetBtnText = document.getElementById('sendTweetBtnText');
+    if (sendTweetBtnText) sendTweetBtnText.textContent = t.btnPostX;
+    
+    // Scroll To Top
+    if (scrollToTopBtn) {
+      scrollToTopBtn.title = t.scrollToTopTooltip;
+      scrollToTopBtn.setAttribute('aria-label', t.scrollToTopTooltip);
+    }
+    
+    // Footer
+    const footerTitle = document.getElementById('footerTitle');
+    if (footerTitle) footerTitle.textContent = t.footerTitle;
+    
+    const footerDisclaimer = document.getElementById('footerDisclaimer');
+    if (footerDisclaimer) footerDisclaimer.textContent = t.footerDisclaimer;
+  }
+
+  function formatDateHeader(isoDateStr, fallbackDate) {
+    if (!isoDateStr) return fallbackDate;
+    try {
+      const dateObj = new Date(isoDateStr);
+      const currentLang = localStorage.getItem('language') || 'en';
+      const options = { year: 'numeric', month: 'long', day: 'numeric' };
+      return dateObj.toLocaleDateString(currentLang === 'es' ? 'es-ES' : 'en-US', options);
+    } catch (e) {
+      return fallbackDate;
+    }
+  }
+
+  // -----------------------------------------------------------
   // UX UTILITIES & FEED COUNT BADGES
   // -----------------------------------------------------------
   function showToast(message, type = 'info') {
+    const lang = localStorage.getItem("language") || "en";
+    const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+    
+    const toastMap = {
+      'Release notes successfully refreshed!': 'toastRefreshSuccess',
+      'Text copied to clipboard!': 'toastCopied',
+      'No data available to export.': 'toastNoExportData',
+      'No matching updates to export.': 'toastNoExportMatches',
+      'CSV export initiated!': 'toastCsvStarted',
+      'Search input focused!': 'toastSearchFocused',
+      'Compose draft reset!': 'toastDraftReset',
+      'Offline mode. Using cached release notes.': 'toastOffline',
+      'Back online! Ready to sync fresh notes.': 'toastOnline'
+    };
+    
+    let displayMessage = message;
+    if (toastMap[message]) {
+      displayMessage = t[toastMap[message]];
+    } else if (message.startsWith('Failed to sync release notes: ')) {
+      const errorDetail = message.substring('Failed to sync release notes: '.length);
+      displayMessage = t.toastRefreshFail + errorDetail;
+    } else if (message.startsWith('Failed to copy text: ')) {
+      const errorDetail = message.substring('Failed to copy text: '.length);
+      displayMessage = (lang === 'es' ? 'Error al copiar texto: ' : 'Failed to copy text: ') + errorDetail;
+    }
+
     if (!toastContainer) return;
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
@@ -63,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (type === 'error') icon = 'fa-exclamation-circle';
     else if (type === 'warning') icon = 'fa-exclamation-triangle';
 
-    toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+    toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${displayMessage}</span>`;
     toastContainer.appendChild(toast);
 
     setTimeout(() => toast.classList.add('show'), 10);
@@ -199,9 +505,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // Update last updated timestamp
       if (data.updated) {
         const dateObj = new Date(data.updated);
-        lastUpdatedTime.textContent = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + dateObj.toLocaleDateString();
+        const lang = localStorage.getItem("language") || "en";
+        lastUpdatedTime.textContent = dateObj.toLocaleTimeString(lang === 'es' ? 'es-ES' : 'en-US', { hour: '2-digit', minute: '2-digit' }) + ' ' + dateObj.toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US');
       } else {
-        lastUpdatedTime.textContent = new Date().toLocaleString();
+        const lang = localStorage.getItem("language") || "en";
+        lastUpdatedTime.textContent = new Date().toLocaleString(lang === 'es' ? 'es-ES' : 'en-US');
       }
 
       updateDashboardStats();
@@ -254,6 +562,21 @@ document.addEventListener('DOMContentLoaded', () => {
     skeletonLoader.style.display = 'none';
     errorContainer.style.display = 'none';
     
+    const lang = localStorage.getItem("language") || "en";
+    const typeTranslation = lang === 'es' ? {
+      'Feature': 'Funcionalidad',
+      'Announcement': 'Anuncio',
+      'Breaking': 'Cambio Crítico',
+      'Change': 'Cambio',
+      'Issue': 'Problema'
+    } : {
+      'Feature': 'Feature',
+      'Announcement': 'Announcement',
+      'Breaking': 'Breaking',
+      'Change': 'Change',
+      'Issue': 'Issue'
+    };
+    
     // Apply filters
     const filtered = rawUpdatesData.filter(item => {
       // 1. Type Filter
@@ -261,10 +584,15 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // 2. Search Query Filter
       const query = searchQuery.trim().toLowerCase();
+      
+      // Look up localized type as well for search
+      const localizedType = (typeTranslation[item.type] || item.type).toLowerCase();
+      
       const matchQuery = !query || 
                          item.text.toLowerCase().includes(query) ||
                          item.type.toLowerCase().includes(query) ||
-                         item.date.toLowerCase().includes(query);
+                         localizedType.includes(query) ||
+                         formatDateHeader(item.iso_date, item.date).toLowerCase().includes(query);
                          
       return matchType && matchQuery;
     });
@@ -282,10 +610,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Group filtered updates by Date
     const grouped = {};
     filtered.forEach(update => {
-      if (!grouped[update.date]) {
-        grouped[update.date] = [];
+      const dateStr = formatDateHeader(update.iso_date, update.date);
+      if (!grouped[dateStr]) {
+        grouped[dateStr] = [];
       }
-      grouped[update.date].push(update);
+      grouped[dateStr].push(update);
     });
 
     // Generate HTML
@@ -316,16 +645,18 @@ document.addEventListener('DOMContentLoaded', () => {
           bodyHtml = highlightText(bodyHtml, searchQuery.trim());
         }
 
+        const localizedType = typeTranslation[item.type] || item.type;
+
         card.innerHTML = `
           <div class="card-header-row">
             <span class="type-badge">
-              <i class="${iconClass}"></i> ${item.type}
+              <i class="${iconClass}"></i> ${localizedType}
             </span>
             <div class="card-actions">
-              <button class="action-btn copy-action" title="Copy text preview to clipboard" aria-label="Copy preview">
+              <button class="action-btn copy-action" title="${lang === 'es' ? 'Copiar vista previa de texto al portapapeles' : 'Copy text preview to clipboard'}" aria-label="${lang === 'es' ? 'Copiar vista previa' : 'Copy preview'}">
                 <i class="fa-regular fa-copy"></i>
               </button>
-              <button class="action-btn tweet-action" title="Edit and Tweet about this update" aria-label="Tweet this update">
+              <button class="action-btn tweet-action" title="${lang === 'es' ? 'Editar y Twittear esta actualización' : 'Edit and Tweet about this update'}" aria-label="${lang === 'es' ? 'Twittear actualización' : 'Tweet this update'}">
                 <i class="fa-brands fa-x-twitter"></i>
               </button>
             </div>
@@ -339,7 +670,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const copyBtn = card.querySelector('.copy-action');
         copyBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          const copyText = `BigQuery ${item.type} - ${item.date}\n\n${item.text}\n\nRead more: ${item.url}`;
+          const formattedItemDate = formatDateHeader(item.iso_date, item.date);
+          let copyText = "";
+          if (lang === 'es') {
+            copyText = `BigQuery ${localizedType} - ${formattedItemDate}\n\n${item.text}\n\nLeer más: ${item.url}`;
+          } else {
+            copyText = `BigQuery ${localizedType} - ${formattedItemDate}\n\n${item.text}\n\nRead more: ${item.url}`;
+          }
           copyTextToClipboard(copyText, copyBtn);
         });
 
@@ -509,27 +846,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function openTweetComposer(item) {
     activeComposeItem = item;
-    // Structure of tweet
-    // Maximize text while ensuring it fits 280.
-    // Length budget = 280 - (Fixed prefixes & Hashtags & URL)
     
-    const emojiMap = {
+    const lang = localStorage.getItem("language") || "en";
+    const emojiMapEN = {
       'Feature': '🚀 BigQuery Feature',
       'Breaking': '⚠️ BigQuery Breaking Change',
       'Announcement': '📢 BigQuery Announcement',
       'Change': '🔄 BigQuery Change',
       'Issue': '🛠️ BigQuery Issue'
     };
+    const emojiMapES = {
+      'Feature': '🚀 Funcionalidad de BigQuery',
+      'Breaking': '⚠️ Cambio Crítico de BigQuery',
+      'Announcement': '📢 Anuncio de BigQuery',
+      'Change': '🔄 Cambio de BigQuery',
+      'Issue': '🛠️ Problema de BigQuery'
+    };
     
-    const emojiHeader = emojiMap[item.type] || '📢 BigQuery Update';
-    const dateStr = item.date;
-    const url = item.url;
+    const emojiMap = lang === 'es' ? emojiMapES : emojiMapEN;
+    const defaultUpdateTitle = lang === 'es' ? '📢 Actualización de BigQuery' : '📢 BigQuery Update';
     const hashtags = '#GoogleCloud #BigQuery';
     
+    const emojiHeader = emojiMap[item.type] || defaultUpdateTitle;
+    const formattedItemDate = formatDateHeader(item.iso_date, item.date);
+    const url = item.url;
+    
     // Format template:
-    // "[emojiHeader] ([dateStr]): [Shortened Text] [hashtags] [url]"
+    // "[emojiHeader] ([formattedItemDate]): [Shortened Text] [hashtags] [url]"
     // Let's compute fixed characters
-    const templateFixedText = `${emojiHeader} (${dateStr}): \n\n ${hashtags}\n`;
+    const templateFixedText = `${emojiHeader} (${formattedItemDate}): \n\n ${hashtags}\n`;
     const fixedLen = templateFixedText.length + url.length + 3; // +3 for spacing
     
     let textBudget = TWEET_LIMIT - fixedLen;
@@ -539,7 +884,7 @@ document.addEventListener('DOMContentLoaded', () => {
       textContent = textContent.substring(0, textBudget - 3) + '...';
     }
     
-    const defaultTweet = `${emojiHeader} (${dateStr}):\n"${textContent}"\n\n${hashtags} ${url}`;
+    const defaultTweet = `${emojiHeader} (${formattedItemDate}):\n"${textContent}"\n\n${hashtags} ${url}`;
     
     tweetTextarea.value = defaultTweet;
     updateTweetProgress();
@@ -665,6 +1010,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // -----------------------------------------------------------
   // BOOTSTRAP INITIALIZATION
   // -----------------------------------------------------------
+  if (langBtn) {
+    langBtn.addEventListener('click', () => {
+      const currentLang = localStorage.getItem("language") || "en";
+      const newLang = currentLang === 'en' ? 'es' : 'en';
+      setLanguage(newLang, true);
+    });
+  }
+
   initTheme();
+  initLanguage();
   fetchNotes();
 });

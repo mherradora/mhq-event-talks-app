@@ -45,3 +45,12 @@ build/
 dist/
 *.egg-info/
 .eggs/
+
+# Node.js / npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+package-lock.json
+
