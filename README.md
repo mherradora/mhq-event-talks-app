@@ -33,6 +33,7 @@ A premium, modern web application that fetches, parses, searches, and shares rel
 8. **Offline Detection Banner**: Automatically detects online/offline network transitions and alerts users using warnings.
 9. **Caching Layer**: Automatically caches XML feed content in a local `feed_cache.json` file to guarantee fast loading speeds and prevent hitting Google feed rate limits.
 10. **Refresh Mechanism**: Refresh button with spinning state fetching new data in the background and updating UI with dynamic skeleton loaders.
+11. **Multi-Language Support (EN/ES)**: Built-in dynamic localization support for English and Spanish, allowing users to toggle languages instantly. The switcher translates all UI labels, stats dashboards, filter pills, tooltips, toast notifications, search placeholders, copy text configurations, and X tweet templates, while formatting date headers matching the selected locale. The selection is persisted across browser refreshes via `localStorage`.
 
 ## Directory Structure
 
